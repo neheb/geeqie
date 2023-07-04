@@ -1,0 +1,10 @@
+[wrap-file]
+directory = exiv2-0.28.0-Source
+source_url = https://github.com/Exiv2/exiv2/releases/download/v0.28.0/exiv2-0.28.0-Source.tar.gz
+source_filename = exiv2-0.28.0-Source.tar.gz
+source_hash = 89af3b5ef7277753ef7a7b5374ae017c6b9e304db3b688f1948e73e103491f3d
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/exiv2_0.28.0-1/exiv2-0.28.0-Source.tar.gz
+wrapdb_version = 0.28.0-1
+
+[provide]
+exiv2 = exiv2_dep

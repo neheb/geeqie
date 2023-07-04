@@ -34,6 +34,8 @@
 #include "exif.h"
 #include "misc.h"
 
+#include <cerrno>
+
 #include <grp.h>
 
 #ifdef DEBUG_FILEDATA

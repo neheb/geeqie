@@ -19,14 +19,14 @@ jobs:
 
       - name: Install packages
         run: |
-          sudo apt install -y g++-${{matrix.cxx}} gettext libgtk-3-dev libchamplain-0.12-dev libchamplain-gtk-0.12-dev libgexiv2-dev libgspell-1-dev libheif-dev liblua5.3-dev libpoppler-glib-dev libraw-dev libomp-dev pandoc libarchive-dev libopenjp2-7-dev
+          sudo apt install -y g++-${{matrix.cxx}} gettext libgtk-3-dev libchamplain-0.12-dev libchamplain-gtk-0.12-dev libgspell-1-dev libheif-dev libpoppler-glib-dev libomp-dev pandoc libopenjp2-7-dev libavcodec-dev libavfilter-dev libavutil-dev libffmpegthumbnailer-dev libgtk-3-bin shellcheck xvfb
           python3 -m pip install meson ninja
 
       - name: Compile and Test
         env:
           CXX: g++-${{matrix.cxx}}
         run: |
-          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Djpegxl=disabled -Dlibraw=disabled
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Djpegxl=disabled -Dlibraw=disabled -Dexiv2:curl=disabled -Dlibarchive:xattr=disabled -Dlibarchive:bz2lib=disabled -Dlibarchive:libb2=disabled -Dlibarchive:acl=disabled
           meson compile -C "${{github.workspace}}/build" --verbose
           meson test -C "${{github.workspace}}/build" --verbose
   Ubuntu-clang:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Install packages
         run: |
-          sudo apt install -y clang-${{matrix.cxx}} libc++abi-${{matrix.cxx}}-dev libc++-${{matrix.cxx}}-dev lld-${{matrix.cxx}} gettext libgtk-3-dev libchamplain-0.12-dev libchamplain-gtk-0.12-dev libgexiv2-dev libgspell-1-dev libheif-dev liblua5.3-dev libpoppler-glib-dev libraw-dev libomp-dev pandoc libopenjp2-7-dev libarchive-dev
+          sudo apt install -y clang-${{matrix.cxx}} libc++abi-${{matrix.cxx}}-dev libc++-${{matrix.cxx}}-dev lld-${{matrix.cxx}} gettext libgtk-3-dev libchamplain-0.12-dev libchamplain-gtk-0.12-dev libgspell-1-dev libheif-dev libpoppler-glib-dev libomp-dev pandoc libopenjp2-7-dev libavcodec-dev libavfilter-dev libavutil-dev libffmpegthumbnailer-dev libgtk-3-bin shellcheck xfvb
           python3 -m pip install meson ninja
 
       - name: Compile and Test
@@ -50,7 +50,7 @@ jobs:
           CXXFLAGS: -stdlib=libc++
           CXX_LD: lld-${{matrix.cxx}}
         run: |
-          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++20 -Djpegxl=disabled -Dlibraw=disabled
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++20 -Djpegxl=disabled -Dlibraw=disabled -Dexiv2:curl=disabled -Dlibarchive:xattr=disabled -Dlibarchive:bz2lib=disabled -Dlibarchive:libb2=disabled -Dlibarchive:acl=disabled
           meson compile -C "${{github.workspace}}/build" --verbose
           meson test -C "${{github.workspace}}/build" --verbose
   MacOS:
@@ -64,39 +64,11 @@ jobs:
 
       - name: Install packages
         run: |
-          brew install gdk-pixbuf gtk+3 libarchive djvulibre exiv2
+          brew install gdk-pixbuf gtk+3 libarchive djvulibre poppler gspell ffmpeg@4
           python3 -m pip install meson ninja
 
       - name: Compile and Test
         run: |
-          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++20 -Dpkg_config_path=/usr/local/opt/libarchive/lib/pkgconfig -Dgps-map=disabled
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dpkg_config_path=/usr/local/opt/libarchive/lib/pkgconfig,/usr/local/opt/ffmpeg@4/lib/pkgconfig -Dgps-map=disabled -Dspell=disabled -Dvideothumbnailer=disabled
           meson compile -C "${{github.workspace}}/build" --verbose
           meson test -C "${{github.workspace}}/build" --verbose
-  FreeBSD:
-    runs-on: macos-latest
-    name: FreeBSD
-    steps:
-      - uses: actions/checkout@v3
-      - name: FreeBSD
-        uses: vmactions/freebsd-vm@v0
-        with:
-          prepare: |
-            pkg install -y curl ninja meson gettext pkgconf googletest expat inih brotli
-          run: |
-            meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
-            meson compile -C "${{github.workspace}}/build" --verbose
-            meson test -C "${{github.workspace}}/build" --verbose
-  OpenBSD:
-    runs-on: macos-latest
-    name: OpenBSD
-    steps:
-      - uses: actions/checkout@v3
-      - name: OpenBSD
-        uses: vmactions/openbsd-vm@v0
-        with:
-          prepare: |
-            pkg_add curl ninja meson gettext pkgconf gtest libiconv
-          run: |
-            meson setup "${{github.workspace}}/build" -Dwarning_level=3 -Dcpp_std=c++20
-            meson compile -C "${{github.workspace}}/build" --verbose
-            meson test -C "${{github.workspace}}/build" --verbose

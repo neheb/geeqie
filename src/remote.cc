@@ -39,6 +39,7 @@
 #include "rcfile.h"
 #include "view-file.h"
 
+#include <cerrno>
 #include <csignal>
 #include <sys/socket.h>
 #include <sys/un.h>

@@ -889,12 +889,12 @@ static gint exif_parse_IFD_entry(ExifData *exif, guchar *tiff, guint offset,
 		 * FIXME: what exactly is this test trying to do?
 		 * ok, so this test is to allow the case of swapped signed/unsigned mismatch to leak through?
 		 */
-		if (!(marker->format == EXIF_FORMAT_RATIONAL_UNSIGNED && format == EXIF_FORMAT_RATIONAL) &&
-		    !(marker->format == EXIF_FORMAT_RATIONAL && format == EXIF_FORMAT_RATIONAL_UNSIGNED) &&
+		if ((marker->format != EXIF_FORMAT_RATIONAL_UNSIGNED || format != EXIF_FORMAT_RATIONAL) &&
+		    (marker->format != EXIF_FORMAT_RATIONAL || format != EXIF_FORMAT_RATIONAL_UNSIGNED) &&
 			/* short fits into a long so allow this mismatch
 			 * as well (some tags allowed to be unsigned short _or_ unsigned long)
 			 */
-		    !(marker->format == EXIF_FORMAT_LONG_UNSIGNED && format == EXIF_FORMAT_SHORT_UNSIGNED) )
+		    (marker->format != EXIF_FORMAT_LONG_UNSIGNED || format != EXIF_FORMAT_SHORT_UNSIGNED) )
 			{
 			if (format < EXIF_FORMAT_COUNT)
 				{
@@ -1443,8 +1443,8 @@ static gchar *exif_item_get_data_as_text_full(ExifItem *item, MetadataFormat for
 		g_string_append(string, " ...");
 		}
 
-	text = string->str;
-	g_string_free(string, FALSE);
+	text = g_strdup(string->str);
+	g_string_free(string, TRUE);
 
 	return text;
 }
@@ -1454,7 +1454,7 @@ gchar *exif_item_get_string(ExifItem *item, gint UNUSED(idx))
 	return exif_item_get_data_as_text_full(item, METADATA_PLAIN);
 }
 
-gchar *exif_item_get_data_as_text(ExifItem *item, ExifData *exif)
+gchar *exif_item_get_data_as_text(ExifItem *item, ExifData *UNUSED(exif))
 {
 	return exif_item_get_data_as_text_full(item, METADATA_FORMATTED);
 }

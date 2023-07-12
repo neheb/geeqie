@@ -27,6 +27,8 @@
 #include "thumb-standard.h"
 #include "ui-fileops.h"
 
+#include <cerrno>
+
 #include <utime.h>
 
 

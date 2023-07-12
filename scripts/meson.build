@@ -12,7 +12,6 @@
 # GNU General Public License for more details.
 
 script_sources += files('authors.sh',
-'check-compiles.sh',
 'devel-install.sh',
 'doxygen-help.sh',
 'doxygen.sh',
@@ -21,6 +20,7 @@ script_sources += files('authors.sh',
 'generate-linuxdeploy-for-arm.sh',
 'generate-man-page.sh',
 'get-test-images.sh',
+'gq-marshal-pragma.sh',
 'image-test.sh',
 'keyword_merge.sh',
 'new-release.sh',

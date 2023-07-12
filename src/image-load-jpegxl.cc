@@ -57,6 +57,8 @@
 
 #ifdef HAVE_JPEGXL
 
+#include <vector>
+
 #include "jxl/decode.h"
 
 struct ImageLoaderJPEGXL {
@@ -79,7 +81,7 @@ static uint8_t *JxlMemoryToPixels(const uint8_t *next_in, size_t size, size_t *s
                            size_t *xsize, size_t *ysize, int *has_alpha) {
   JxlDecoder *dec = JxlDecoderCreate(nullptr);
   *has_alpha = 1;
-  uint8_t *pixels = nullptr;
+  std::vector<uint8_t> pixels;
   if (!dec) {
     log_printf("JxlDecoderCreate failed\n");
     return nullptr;
@@ -91,6 +93,11 @@ static uint8_t *JxlMemoryToPixels(const uint8_t *next_in, size_t size, size_t *s
     return nullptr;
   }
 
+   /* Avoid compiler warning - used uninitialized */
+   /* This file will be replaced by libjxl at some time */
+   *stride = 0;
+   *ysize = 0;
+   
   JxlBasicInfo info;
   int success = 0;
   JxlPixelFormat format = {4, JXL_TYPE_UINT8, JXL_NATIVE_ENDIAN, 0};
@@ -126,10 +133,9 @@ static uint8_t *JxlMemoryToPixels(const uint8_t *next_in, size_t size, size_t *s
         break;
       }
       size_t pixels_buffer_size = buffer_size * sizeof(uint8_t);
-      pixels = static_cast<uint8_t *>(malloc(pixels_buffer_size));
-      auto pixels_buffer = (void *)pixels;
+      pixels.reserve(buffer_size);
       if (JXL_DEC_SUCCESS != JxlDecoderSetImageOutBuffer(dec, &format,
-                                                         pixels_buffer,
+                                                         pixels.data(),
                                                          pixels_buffer_size)) {
         log_printf("JxlDecoderSetImageOutBuffer failed\n");
         break;
@@ -148,12 +154,9 @@ static uint8_t *JxlMemoryToPixels(const uint8_t *next_in, size_t size, size_t *s
   }
 
   JxlDecoderDestroy(dec);
-  if (success){
-    return pixels;
-  } else {
-    free(pixels);
-    return nullptr;
-  }
+  if (success)
+    return pixels.data();
+  return nullptr;
 }
 
 static gboolean image_loader_jpegxl_load(gpointer loader, const guchar *buf, gsize count, GError **UNUSED(error))

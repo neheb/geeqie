@@ -19,6 +19,9 @@
  */
 
 #include "main.h"
+
+#include <cerrno>
+
 #include <glib/gprintf.h>
 #include <utime.h>
 

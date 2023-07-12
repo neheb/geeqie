@@ -20,30 +20,14 @@
 #**********************************************************************
 
 ## @file
-## @brief Run image tests
+## @brief Include pragma command at head of gq-marshal.c.
 ##
-## $1 Geeqie executable
-## $2 Full path to image
+## $1 input - gq-marshal.c
+## $2 output - gq-marshal-pragma.c
 ##
+## The code produced by glib-genmarshal results in compile warnings.
+## This scripts adds a pragma at the head of the file to prevent this.
 ##
 
-xvfb-run --auto-servernum "$1" "$2" &
-
-# Wait for remote to initialize
-while [ ! -e "$HOME/.config/geeqie/.command" ] ;
-do
-	sleep 1
-done
-
-sleep 2
-
-result=$(xvfb-run --auto-servernum "$1" --remote --get-file-info)
-xvfb-run --auto-servernum "$1" --remote --quit
-
-if echo "$result" | grep -q "Class: Unknown"
-then
-	exit 1
-else
-	exit 0
-fi
-
+printf "#pragma GCC diagnostic ignored \"-Wpedantic\"\n" > "$2"
+cat "$1" >> "$2"

@@ -1,68 +1,74 @@
-name: Geeqie check build
-run-name: ${{ github.actor }} is running Geeqie check build
-on: [push, pull_request]
-jobs:
-  Check-Build-No-Options:
-    runs-on: ubuntu-22.04
-    steps:
-    - run: sudo apt-get update
-    - run: sudo apt-get install build-essential libgtk-3-dev libgtk-3-bin
-    - run: sudo apt-get install shellcheck
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-    - run: sudo apt-get install xvfb
-    - uses: BSFishy/meson-build@v1.0.3
-      with:
-        action: test
-        directory: build
-        setup-options: -Darchive=disabled -Dcms=disabled -Ddevel=disabled -Ddoxygen=disabled -Ddjvu=disabled -Devince=disabled -Dexecinfo=disabled -Dexiv2=disabled -Dgit=disabled -Dgps-map=disabled -Dheif=disabled -Dj2k=disabled -Djpeg=disabled -Djpegxl=disabled -Dlibraw=disabled -Dlua=disabled -Dpandoc=disabled -Dpdf=disabled -Dspell=disabled -Dtiff=disabled -Dvideothumbnailer=disabled -Dyelp-build=disabled
-        options: --verbose
-        meson-version: 0.56.2
-    - name: Upload logs
-      uses: actions/upload-artifact@v2
-      if: always()
-      with:
-        name: logs-all
-        path: /home/runner/work/geeqie/geeqie/build/meson-logs/*.txt
-        retention-days: 5
+name: On PRs - meson
 
-  Check-Build-Most-Options:
-    runs-on: ubuntu-22.04
+on: pull_request
+
+concurrency:
+  group: ${{github.workflow}}-${{github.head_ref}}
+  cancel-in-progress: true
+
+jobs:
+  Ubuntu:
+    runs-on: ubuntu-20.04
+    name: Linux-GCC${{matrix.cxx}}-deps=${{matrix.deps}}
+    strategy:
+      matrix:
+        cxx: ['7', '10']
+        deps: ['enabled', 'disabled']
     steps:
-    - run: sudo apt-get update
-    - run: sudo apt-get install build-essential libgtk-3-dev libgtk-3-bin
-    - run: sudo apt-get install shellcheck
-    - run: sudo apt-get install evince
-    - run: sudo apt-get install libarchive-dev
-    - run: sudo apt-get install libchamplain-0.12-dev libchamplain-gtk-0.12-dev
-    - run: sudo apt-get install libdw-dev
-    - run: sudo apt-get install libdwarf-dev
-    #~ - run: sudo apt-get install libffmpegthumbnailer-dev
-    - run: sudo apt-get install libgexiv2-dev
-    - run: sudo apt-get install libgspell-1-dev
-    - run: sudo apt-get install libheif-dev
-    #~ - run: sudo apt-get install libjxl-dev
-    - run: sudo apt-get install liblua5.3-dev
-    - run: sudo apt-get install libpoppler-glib-dev
-    - run: sudo apt-get install libraw-dev libomp-dev
-    - run: sudo apt-get install libunwind-dev
-    - run: sudo apt-get install webp-pixbuf-loader
-    - run: sudo apt-get install pandoc
-    #~ - run: sudo apt-get install yelp-tools
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-    - run: sudo apt-get install xvfb
-    - uses: BSFishy/meson-build@v1.0.3
-      with:
-        action: test
-        directory: build
-        setup-options: -Ddevel=enabled
-        options: --verbose
-        meson-version: 0.56.2
-    - name: Upload logs
-      uses: actions/upload-artifact@v2
-      if: always()
-      with:
-        name: logs-all
-        path: /home/runner/work/geeqie/geeqie/build/meson-logs/*.txt
-        retention-days: 5
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          sudo apt install -y g++-${{matrix.cxx}} gettext libgtk-3-dev libchamplain-0.12-dev libchamplain-gtk-0.12-dev libgspell-1-dev libheif-dev libpoppler-glib-dev libomp-dev pandoc libopenjp2-7-dev libavcodec-dev libavfilter-dev libavutil-dev libffmpegthumbnailer-dev libgtk-3-bin shellcheck xvfb
+          python3 -m pip install meson ninja
+
+      - name: Compile and Test
+        env:
+          CXX: g++-${{matrix.cxx}}
+        run: |
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Djpegxl=disabled -Dlibraw=disabled -Dexiv2:curl=disabled -Dlibarchive:xattr=disabled -Dlibarchive:bz2lib=disabled -Dlibarchive:libb2=disabled -Dlibarchive:acl=disabled
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
+  Ubuntu-clang:
+    runs-on: ubuntu-20.04
+    name: Linux-Clang${{matrix.cxx}}-deps=${{matrix.deps}}
+    strategy:
+      matrix:
+        cxx: ['7', '12']
+        deps: ['enabled', 'disabled']
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          sudo apt install -y clang-${{matrix.cxx}} libc++abi-${{matrix.cxx}}-dev libc++-${{matrix.cxx}}-dev lld-${{matrix.cxx}} gettext libgtk-3-dev libchamplain-0.12-dev libchamplain-gtk-0.12-dev libgspell-1-dev libheif-dev libpoppler-glib-dev libomp-dev pandoc libopenjp2-7-dev libavcodec-dev libavfilter-dev libavutil-dev libffmpegthumbnailer-dev libgtk-3-bin shellcheck xfvb
+          python3 -m pip install meson ninja
+
+      - name: Compile and Test
+        env:
+          CXX: clang++-${{matrix.cxx}}
+          CXXFLAGS: -stdlib=libc++
+          CXX_LD: lld-${{matrix.cxx}}
+        run: |
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dcpp_std=c++20 -Djpegxl=disabled -Dlibraw=disabled -Dexiv2:curl=disabled -Dlibarchive:xattr=disabled -Dlibarchive:bz2lib=disabled -Dlibarchive:libb2=disabled -Dlibarchive:acl=disabled
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
+  MacOS:
+    runs-on: macos-latest
+    name: macOS-deps=${{matrix.deps}}
+    strategy:
+      matrix:
+        deps: ['enabled', 'disabled']
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install packages
+        run: |
+          brew install gdk-pixbuf gtk+3 libarchive djvulibre poppler gspell ffmpeg@4
+          python3 -m pip install meson ninja
+
+      - name: Compile and Test
+        run: |
+          meson setup "${{github.workspace}}/build" -Dauto_features=${{matrix.deps}} -Dwarning_level=3 -Dpkg_config_path=/usr/local/opt/libarchive/lib/pkgconfig,/usr/local/opt/ffmpeg@4/lib/pkgconfig -Dgps-map=disabled -Dspell=disabled -Dvideothumbnailer=disabled
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
